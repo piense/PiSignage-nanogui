@@ -153,7 +153,6 @@ public:
         /* No need to store a pointer, the data structure will be automatically
            freed when the parent window is deleted */
 
-
         Button *b = new Button(window, "Plain button");
         b->setCallback([] { cout << "pushed!" << endl; });
         b->setTooltip("short tooltip");

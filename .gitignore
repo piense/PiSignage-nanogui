@@ -15,7 +15,9 @@ rules.ninja
 Makefile
 bin2c
 example[1-9]
+signagegui
 icons
+example_icons
 *~
 nanogui*.so
 nanogui*.pyd
