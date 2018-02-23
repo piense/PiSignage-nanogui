@@ -13,28 +13,19 @@
 #pragma once
 
 #include <nanogui/widget.h>
+#include <nanogui/slidecanvas.h>
 
 NAMESPACE_BEGIN(nanogui)
 
 /**
- * \class Window window.h nanogui/window.h
+ * \class SlideJpeg slidejpeg.h
  *
- * \brief Top-level window widget.
+ * \brief Represents an image on the slide, must be place on a slidecanvas
  */
-class NANOGUI_EXPORT Window : public Widget {
+class NANOGUI_EXPORT SlideImage : public Widget {
     friend class Popup;
 public:
-    Window(Widget *parent, const std::string &title = "Untitled");
-
-    /// Return the window title
-    const std::string &title() const { return mTitle; }
-    /// Set the window title
-    void setTitle(const std::string &title) { mTitle = title; }
-
-    /// Is this a model dialog?
-    bool modal() const { return mModal; }
-    /// Set whether or not this is a modal dialog
-    void setModal(bool modal) { mModal = modal; }
+    SlideImage(Widget *parent);
 
     /// Return the panel used to house window buttons
     Widget *buttonPanel();
@@ -61,17 +52,30 @@ public:
     virtual void performLayout(NVGcontext *ctx) override;
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
+
+    SlideCanvas *mCanvas;
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
     virtual void refreshRelativePlacement();
+
+    void drawHandles(NVGcontext *ctx);
 protected:
-    std::string mTitle;
-    Widget *mButtonPanel;
-    bool mModal;
+    //Screen ratio width/height of the target screen resolution
+    float windowRatio;
+
     bool mDrag;
-    bool mResizeV;
-    bool mResizeH;
-    bool mStaleLayout = false;
+
+    int mHandleSize;
+
+    Vector2i mLastMouse;
+    Vector2i mMouseDownWidgetPos;
+    Vector2i mMouseDownWidgetSize;
+    Vector2i mMouseDownPos;
+    Vector2i mMouseDownHandle;
+
+    //Relative to canvas
+    Vector2i mImagePos;
+    Vector2i mImageSize;
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };

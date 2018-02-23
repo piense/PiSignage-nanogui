@@ -318,6 +318,8 @@ add_library(nanogui-obj OBJECT
   include/nanogui/screen.h src/screen.cpp
   include/nanogui/label.h src/label.cpp
   include/nanogui/window.h src/window.cpp
+  include/nanogui/slidecanvas.h src/slidecanvas.cpp
+  include/nanogui/slideimage.h src/slideimage.cpp
   include/nanogui/popup.h src/popup.cpp
   include/nanogui/checkbox.h src/checkbox.cpp
   include/nanogui/button.h src/button.cpp
@@ -431,6 +433,10 @@ if(NANOGUI_BUILD_EXAMPLE)
   # Copy icons for example application
   file(COPY resources/icons DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
+
+#Pi Sigange Application
+  add_executable(signagegui      src/signagegui.cpp)
+  target_link_libraries(signagegui      nanogui ${NANOGUI_EXTRA_LIBS})
 
 if (NANOGUI_BUILD_PYTHON)
   # Detect Python

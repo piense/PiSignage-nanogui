@@ -67,6 +67,9 @@ void Window::draw(NVGcontext *ctx) {
     int ds = mTheme->mWindowDropShadowSize, cr = mTheme->mWindowCornerRadius;
     int hh = mTheme->mWindowHeaderHeight;
 
+    if(mStaleLayout)
+    	performLayout(ctx);
+
     /* Draw window */
     nvgSave(ctx);
     nvgBeginPath(ctx);
@@ -155,7 +158,7 @@ void Window::center() {
     ((Screen *) widget)->centerWindow(this);
 }
 
-bool Window::mouseDragEvent(const Vector2i &, const Vector2i &rel,
+bool Window::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
                             int button, int /* modifiers */) {
     if (mDrag && (button & (1 << GLFW_MOUSE_BUTTON_1)) != 0) {
         mPos += rel;
@@ -163,14 +166,60 @@ bool Window::mouseDragEvent(const Vector2i &, const Vector2i &rel,
         mPos = mPos.cwiseMin(parent()->size() - mSize);
         return true;
     }
+
+    if(mResizeV && mResizeH && (button & (1 << GLFW_MOUSE_BUTTON_1)) != 0)
+    {
+        mSize += rel;
+        mSize.y() = mSize.y() < mTheme->mWindowHeaderHeight*2 ? mTheme->mWindowHeaderHeight*2 : mSize.y();
+		mSize.x() = mSize.x() < mTheme->mWindowHeaderHeight ? mTheme->mWindowHeaderHeight : mSize.x();
+		mStaleLayout = true;
+		return true;
+    }
+
+    if (mResizeV && (button & (1 << GLFW_MOUSE_BUTTON_1)) != 0) {
+        mSize.y() += rel.y();
+        mSize.y() = mSize.y() < mTheme->mWindowHeaderHeight*2 ? mTheme->mWindowHeaderHeight*2 : mSize.y();
+        mStaleLayout = true;
+        return true;
+    }
+
+    if (mResizeH && (button & (1 << GLFW_MOUSE_BUTTON_1)) != 0) {
+		mSize.x() += rel.x();
+		mSize.x() = mSize.x() < mTheme->mWindowHeaderHeight ? mTheme->mWindowHeaderHeight : mSize.x();
+		mStaleLayout = true;
+		return true;
+	}
+
     return false;
 }
 
+bool Window::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers){
+	mCursor = Cursor::Arrow;
+
+	float borderSens = 10;
+
+	if ((p.x()-mPos.x()) > mSize.x() - borderSens && (p.y()-mPos.y()) > mSize.y() - borderSens)
+		mCursor = Cursor::Crosshair;
+	else{
+		if ((p.x()-mPos.x()) > mSize.x() - borderSens)
+			mCursor = Cursor::HResize;
+
+		if ((p.y()-mPos.y()) > mSize.y() - borderSens)
+			mCursor = Cursor::VResize;
+	}
+
+	return Widget::mouseMotionEvent(p, rel, button, modifiers);
+}
+
 bool Window::mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) {
+	float borderSens = 10;
+
     if (Widget::mouseButtonEvent(p, button, down, modifiers))
         return true;
     if (button == GLFW_MOUSE_BUTTON_1) {
         mDrag = down && (p.y() - mPos.y()) < mTheme->mWindowHeaderHeight;
+        mResizeV = down && (p.y() - mPos.y()) > mSize.y() - borderSens;
+        mResizeH = down && (p.x() - mPos.x()) > mSize.x() - borderSens;
         return true;
     }
     return false;
@@ -195,7 +244,6 @@ bool Window::load(Serializer &s) {
     if (!Widget::load(s)) return false;
     if (!s.get("title", mTitle)) return false;
     if (!s.get("modal", mModal)) return false;
-    mDrag = false;
     return true;
 }
 

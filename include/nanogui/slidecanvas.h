@@ -17,24 +17,14 @@
 NAMESPACE_BEGIN(nanogui)
 
 /**
- * \class Window window.h nanogui/window.h
+ * \class SlideCanvas slidecanvas.h slidecanvas/window.h
  *
- * \brief Top-level window widget.
+ * \brief Basically an empty area to drag widgets around.
  */
-class NANOGUI_EXPORT Window : public Widget {
+class NANOGUI_EXPORT SlideCanvas : public Widget {
     friend class Popup;
 public:
-    Window(Widget *parent, const std::string &title = "Untitled");
-
-    /// Return the window title
-    const std::string &title() const { return mTitle; }
-    /// Set the window title
-    void setTitle(const std::string &title) { mTitle = title; }
-
-    /// Is this a model dialog?
-    bool modal() const { return mModal; }
-    /// Set whether or not this is a modal dialog
-    void setModal(bool modal) { mModal = modal; }
+    SlideCanvas(Widget *parent);
 
     /// Return the panel used to house window buttons
     Widget *buttonPanel();
@@ -61,17 +51,17 @@ public:
     virtual void performLayout(NVGcontext *ctx) override;
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
+
+    Vector2i mCanvasPos;
+    Vector2i mCanvasSize;
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
     virtual void refreshRelativePlacement();
 protected:
-    std::string mTitle;
-    Widget *mButtonPanel;
-    bool mModal;
-    bool mDrag;
-    bool mResizeV;
-    bool mResizeH;
-    bool mStaleLayout = false;
+    //Screen ratio width/height of the target screen resolution
+    float windowRatio;
+
+
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
