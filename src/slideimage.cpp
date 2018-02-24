@@ -11,6 +11,7 @@
 
 #include <nanogui/slideimage.h>
 #include <nanogui/theme.h>
+#include <nanogui/window.h>
 #include <nanogui/opengl.h>
 #include <nanogui/screen.h>
 #include <nanogui/layout.h>
@@ -20,7 +21,7 @@
 #include <nanogui/opengl.h>
 #include <nanogui/glutil.h>
 
-#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 // Includes for the GLTexture class.
@@ -80,22 +81,21 @@ namespace {
 
 SlideImage::SlideImage(Widget *parent, const std::string& fileName)
     : Widget(parent), mCanvasImagePos(.5,.5), mCanvasImageSize(.25,.25), mImageID(0), mScale(1.0f),
-	  mOffset(Vector2f::Zero()), mFixedScale(false), mFixedOffset(false), mImageID(0){
+	  mOffset(Vector2f::Zero()), mFixedScale(false), mFixedOffset(false){
 	mPos = {40,40};
 	mSize = {90, 90};
 	mHandleSize = 10;
 	mDrag = false;
 
-    GLTexture texture("SlideImage");
-    auto data = texture.load(fileName);
+    GLTexture *texture = new GLTexture("SlideImage");
+    auto data = texture->load(fileName);
 
-
-	mImageID = texture.texture();
+	mImageID = texture->texture();
 	updateImageParameters();
 	fit();
 
 	//Image Init stuff
-    updateImageParameters();
+    //updateImageParameters();
     mShader.init("ImageViewShader", defaultImageViewVertexShader,
                  defaultImageViewFragmentShader);
 
@@ -117,6 +117,7 @@ SlideImage::SlideImage(Widget *parent, const std::string& fileName)
 SlideImage::~SlideImage()
 {
     mShader.free();
+    //delete texture;
 }
 
 Vector2i SlideImage::preferredSize(NVGcontext *ctx) const {
@@ -157,10 +158,21 @@ void SlideImage::draw(NVGcontext *ctx) {
 
     nvgRestore(ctx);
 
-    Widget::draw(ctx);
+    nvgEndFrame(ctx); // Flush the NanoVG draw stack, not necessary to call nvgBeginFrame afterwards.
+
+
+    drawImage(ctx);
+
+
+
+    //Widget::draw(ctx);
 }
 
 void SlideImage::drawImage(NVGcontext *ctx){
+
+	updateImageParameters();
+	fit();
+
     // Calculate several variables that need to be send to OpenGL in order for the image to be
     // properly displayed inside the widget.
     const Screen* screen = dynamic_cast<const Screen*>(this->window()->parent());
@@ -231,8 +243,6 @@ void SlideImage::dispose() {
 
 }
 
-void SlideImage::center() {
-}
 
 bool SlideImage::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
                             int button, int /* modifiers */) {

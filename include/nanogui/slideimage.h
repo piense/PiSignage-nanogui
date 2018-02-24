@@ -17,7 +17,6 @@
 #include <nanogui/opengl.h>
 #include <nanogui/glutil.h>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 // Includes for the GLTexture class.
@@ -36,6 +35,7 @@ class NANOGUI_EXPORT SlideImage : public Widget {
     friend class Popup;
 public:
     SlideImage(Widget *parent, const std::string& fileName);
+    ~SlideImage();
 
     /// Return the panel used to house window buttons
     Widget *buttonPanel();
