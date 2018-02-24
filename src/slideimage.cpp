@@ -17,15 +17,106 @@
 #include <nanogui/serializer/core.h>
 #include <nanogui/slidecanvas.h>
 #include <math.h>
+#include <nanogui/opengl.h>
+#include <nanogui/glutil.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+// Includes for the GLTexture class.
+#include <cstdint>
+#include <memory>
+#include <utility>
 
 NAMESPACE_BEGIN(nanogui)
 
-SlideImage::SlideImage(Widget *parent)
-    : Widget(parent), mImagePos(.5,.5), mImageSize(.25,.25) {
+namespace {
+    std::vector<std::string> tokenize(const std::string &string,
+                                      const std::string &delim = "\n",
+                                      bool includeEmpty = false) {
+        std::string::size_type lastPos = 0, pos = string.find_first_of(delim, lastPos);
+        std::vector<std::string> tokens;
+
+        while (lastPos != std::string::npos) {
+            std::string substr = string.substr(lastPos, pos - lastPos);
+            if (!substr.empty() || includeEmpty)
+                tokens.push_back(std::move(substr));
+            lastPos = pos;
+            if (lastPos != std::string::npos) {
+                lastPos += 1;
+                pos = string.find_first_of(delim, lastPos);
+            }
+        }
+
+        return tokens;
+    }
+
+    constexpr char const *const defaultImageViewVertexShader =
+        R"(#version 330
+        uniform vec2 scaleFactor;
+        uniform vec2 position;
+        in vec2 vertex;
+        out vec2 uv;
+        void main() {
+            uv = vertex;
+            vec2 scaledVertex = (vertex * scaleFactor) + position;
+            gl_Position  = vec4(2.0*scaledVertex.x - 1.0,
+                                1.0 - 2.0*scaledVertex.y,
+                                0.0, 1.0);
+
+        })";
+
+    constexpr char const *const defaultImageViewFragmentShader =
+        R"(#version 330
+        uniform sampler2D image;
+        out vec4 color;
+        in vec2 uv;
+        void main() {
+            color = texture(image, uv);
+        })";
+
+}
+
+
+SlideImage::SlideImage(Widget *parent, const std::string& fileName)
+    : Widget(parent), mCanvasImagePos(.5,.5), mCanvasImageSize(.25,.25), mImageID(0), mScale(1.0f),
+	  mOffset(Vector2f::Zero()), mFixedScale(false), mFixedOffset(false), mImageID(0){
 	mPos = {40,40};
 	mSize = {90, 90};
 	mHandleSize = 10;
 	mDrag = false;
+
+    GLTexture texture("SlideImage");
+    auto data = texture.load(fileName);
+
+
+	mImageID = texture.texture();
+	updateImageParameters();
+	fit();
+
+	//Image Init stuff
+    updateImageParameters();
+    mShader.init("ImageViewShader", defaultImageViewVertexShader,
+                 defaultImageViewFragmentShader);
+
+    MatrixXu indices(3, 2);
+    indices.col(0) << 0, 1, 2;
+    indices.col(1) << 2, 3, 1;
+
+    MatrixXf vertices(2, 4);
+    vertices.col(0) << 0, 0;
+    vertices.col(1) << 1, 0;
+    vertices.col(2) << 0, 1;
+    vertices.col(3) << 1, 1;
+
+    mShader.bind();
+    mShader.uploadIndices(indices);
+    mShader.uploadAttrib("vertex", vertices);
+}
+
+SlideImage::~SlideImage()
+{
+    mShader.free();
 }
 
 Vector2i SlideImage::preferredSize(NVGcontext *ctx) const {
@@ -55,11 +146,11 @@ void SlideImage::draw(NVGcontext *ctx) {
 
     //Outer widget rectangle
     nvgBeginPath(ctx);
-    nvgRoundedRect(ctx, mPos.x()+mHandleSize/2, mPos.y()+mHandleSize/2,
-    		mSize.x()-mHandleSize, mSize.y()-mHandleSize, cr);
+    nvgRect(ctx, mPos.x()+mHandleSize/2, mPos.y()+mHandleSize/2,
+    		mSize.x()-mHandleSize, mSize.y()-mHandleSize);
     NVGcolor col = mMouseFocus ? NVGcolor{1,0,0,1} : NVGcolor{1,0,0,1};
-    nvgFillColor(ctx, col);
-    nvgFill(ctx);
+    nvgStrokeColor(ctx, col);
+    nvgStroke(ctx);
 
     if(mFocused)
     	drawHandles(ctx);
@@ -67,6 +158,32 @@ void SlideImage::draw(NVGcontext *ctx) {
     nvgRestore(ctx);
 
     Widget::draw(ctx);
+}
+
+void SlideImage::drawImage(NVGcontext *ctx){
+    // Calculate several variables that need to be send to OpenGL in order for the image to be
+    // properly displayed inside the widget.
+    const Screen* screen = dynamic_cast<const Screen*>(this->window()->parent());
+    assert(screen);
+    Vector2f screenSize = screen->size().cast<float>();
+    Vector2f scaleFactor = mScale * imageSizeF().cwiseQuotient(screenSize);
+    Vector2f positionInScreen = absolutePosition().cast<float>();
+    Vector2f positionAfterOffset = positionInScreen + mOffset;
+    Vector2f imagePosition = positionAfterOffset.cwiseQuotient(screenSize);
+    glEnable(GL_SCISSOR_TEST);
+    float r = screen->pixelRatio();
+    glScissor(positionInScreen.x() * r,
+              (screenSize.y() - positionInScreen.y() - size().y()) * r,
+              size().x() * r, size().y() * r);
+    mShader.bind();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mImageID);
+    mShader.setUniform("image", 0);
+    mShader.setUniform("scaleFactor", scaleFactor);
+    mShader.setUniform("position", imagePosition);
+    mShader.drawIndexed(GL_TRIANGLES, 0, 2);
+    glDisable(GL_SCISSOR_TEST);
+
 }
 
 void SlideImage::drawHandles(NVGcontext *ctx){
@@ -225,5 +342,30 @@ bool SlideImage::load(Serializer &s) {
 
     return true;
 }
+
+
+void SlideImage::updateImageParameters() {
+    // Query the width of the OpenGL texture.
+    glBindTexture(GL_TEXTURE_2D, mImageID);
+    GLint w, h;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+    mImageSize = Vector2i(w, h);
+}
+
+void SlideImage::center() {
+    mOffset = (sizeF() - scaledImageSizeF()) / 2;
+}
+
+void SlideImage::fit() {
+    // Calculate the appropriate scaling factor.
+    mScale = (sizeF().cwiseQuotient(imageSizeF())).minCoeff();
+    center();
+}
+
+
+
+
+
 
 NAMESPACE_END(nanogui)

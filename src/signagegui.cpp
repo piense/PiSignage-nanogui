@@ -233,7 +233,7 @@ public:
         tools->setLayout(new BoxLayout(Orientation::Horizontal,Alignment::Middle,0,6));
         imageWindowLayout->setAnchor(tools,AdvancedGridLayout::Anchor(0,0));
 
-        SlideImage *imagetest = new SlideImage(sc);
+        SlideImage *imagetest = new SlideImage(sc,"/home/david/Desktop/Cute Photos/IMG_6253.jpg");
         imagetest->mCanvas = sc;
 
         b = new Button(tools,"Add JPEG");
