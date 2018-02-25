@@ -57,12 +57,11 @@ void SlideCanvas::draw(NVGcontext *ctx) {
 		inset.y() = windowRatio > widgetRatio ? (mSize.x() - 20)/windowRatio : mSize.y() - 20;
 
 		nvgBeginPath(ctx);
-		nvgRoundedRect(ctx,
+		nvgRect(ctx,
 				(windowRatio > widgetRatio ? 10 : (mSize.x() - inset.x()) / 2)+mPos.x(),
 						(windowRatio > widgetRatio ? (mSize.y() - inset.y()) / 2 : 10)+mPos.y(),
-				inset.x(), inset.y(), cr);
-		NVGcolor col = mMouseFocus ? NVGcolor{.5,.5,.5,1} : NVGcolor{.3,.3,.3,1} ;
-		col = mFocused ? NVGcolor{.8,.8,.8,1} : col ;
+				inset.x(), inset.y());
+		NVGcolor col = NVGcolor({0.0,0.0,0.0,1.0});
 		nvgFillColor(ctx, col);
 		nvgFill(ctx);
     }

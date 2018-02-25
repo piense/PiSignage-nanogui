@@ -73,226 +73,118 @@ using std::vector;
 using std::pair;
 using std::to_string;
 
-class GLTexture {
-public:
-    using handleType = std::unique_ptr<uint8_t[], void(*)(void*)>;
-    GLTexture() = default;
-    GLTexture(const std::string& textureName)
-        : mTextureName(textureName), mTextureId(0) {}
-
-    GLTexture(const std::string& textureName, GLint textureId)
-        : mTextureName(textureName), mTextureId(textureId) {}
-
-    GLTexture(const GLTexture& other) = delete;
-    GLTexture(GLTexture&& other) noexcept
-        : mTextureName(std::move(other.mTextureName)),
-        mTextureId(other.mTextureId) {
-        other.mTextureId = 0;
-    }
-    GLTexture& operator=(const GLTexture& other) = delete;
-    GLTexture& operator=(GLTexture&& other) noexcept {
-        mTextureName = std::move(other.mTextureName);
-        std::swap(mTextureId, other.mTextureId);
-        return *this;
-    }
-    ~GLTexture() noexcept {
-        if (mTextureId)
-            glDeleteTextures(1, &mTextureId);
-    }
-
-    GLuint texture() const { return mTextureId; }
-    const std::string& textureName() const { return mTextureName; }
-
-    /**
-    *  Load a file in memory and create an OpenGL texture.
-    *  Returns a handle type (an std::unique_ptr) to the loaded pixels.
-    */
-    handleType load(const std::string& fileName) {
-        if (mTextureId) {
-            glDeleteTextures(1, &mTextureId);
-            mTextureId = 0;
-        }
-        int force_channels = 0;
-        int w, h, n;
-        handleType textureData(stbi_load(fileName.c_str(), &w, &h, &n, force_channels), stbi_image_free);
-        if (!textureData)
-            throw std::invalid_argument("Could not load texture data from file " + fileName);
-        glGenTextures(1, &mTextureId);
-        glBindTexture(GL_TEXTURE_2D, mTextureId);
-        GLint internalFormat;
-        GLint format;
-        switch (n) {
-            case 1: internalFormat = GL_R8; format = GL_RED; break;
-            case 2: internalFormat = GL_RG8; format = GL_RG; break;
-            case 3: internalFormat = GL_RGB8; format = GL_RGB; break;
-            case 4: internalFormat = GL_RGBA8; format = GL_RGBA; break;
-            default: internalFormat = 0; format = 0; break;
-        }
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, w, h, 0, format, GL_UNSIGNED_BYTE, textureData.get());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        return textureData;
-    }
-
-private:
-    std::string mTextureName;
-    GLuint mTextureId;
-};
-
 class ExampleApplication : public nanogui::Screen {
 public:
     ExampleApplication() : nanogui::Screen(Eigen::Vector2i(1024, 768), "NanoGUI Test") { // @suppress("Class members should be properly initialized")
         using namespace nanogui;
 
-        Window *window = new Window(this, "Button demo");
+        Window *window = new Window(this, "Slide");
         window->setPosition(Vector2i(15, 15));
         window->setLayout(new GroupLayout());
 
-        /* No need to store a pointer, the data structure will be automatically
-           freed when the parent window is deleted */
+        new Label(window, "Dissolve Time :", "sans-bold");
+		mDissolveTime = new TextBox(window);
+		mDissolveTime->setEditable(true);
+		mDissolveTime->setFixedSize(Vector2i(100, 20));
+		mDissolveTime->setValue("5.0");
+		mDissolveTime->setUnits("Sec.");
+		mDissolveTime->setDefaultValue("1.0");
+		mDissolveTime->setFontSize(16);
+		mDissolveTime->setFormat("^[0-9]*\\.?[0-9]+$");
 
-        Button *b = new Button(window, "Plain button");
-        b->setCallback([] { cout << "pushed!" << endl; });
-        b->setTooltip("short tooltip");
+		new Label(window, "Duration:", "sans-bold");
+		mSlideTime = new TextBox(window);
+		mSlideTime->setEditable(true);
+		mSlideTime->setFixedSize(Vector2i(130, 20));
+		mSlideTime->setValue("10.0");
+		mSlideTime->setUnits("Sec.");
+		mSlideTime->setDefaultValue("1.0");
+		mSlideTime->setFontSize(16);
+		mSlideTime->setFormat("^[0-9]*\\.?[0-9]+$");
 
+		new Label(window, "Screen Dimensions:", "sans-bold");
+		mScreenSize = new TextBox(window);
+		mScreenSize->setEditable(true);
+		mScreenSize->setFixedSize(Vector2i(130, 20));
+		mScreenSize->setValue("1920 x 1080");
+		mScreenSize->setUnits("Px");
+		mScreenSize->setDefaultValue("1920");
+		mScreenSize->setFontSize(16);
+		mScreenSize->setFormat("^[0-9]{1,4}\\s*[x]\\s*[0-9]{1,4}$");
+		mScreenSize->setCallback( [&] (const std::string& str) {
+			UpdateScreenSize( str );
+			return true;
+		});
 
-        new Label(window, "Popup buttons", "sans-bold");
-        PopupButton *popupBtn = new PopupButton(window, "Popup", ENTYPO_ICON_EXPORT);
-        Popup *popup = popupBtn->popup();
-        popup->setLayout(new GroupLayout());
-        new Label(popup, "Arbitrary widgets can be placed here");
-        new CheckBox(popup, "A check box");
-        // popup right
-        popupBtn = new PopupButton(popup, "Recursive popup", ENTYPO_ICON_FLASH);
-        Popup *popupRight = popupBtn->popup();
-        popupRight->setLayout(new GroupLayout());
-        new CheckBox(popupRight, "Another check box");
-        // popup left
-        popupBtn = new PopupButton(popup, "Recursive popup", ENTYPO_ICON_FLASH);
-        popupBtn->setSide(Popup::Side::Left);
-        Popup *popupLeft = popupBtn->popup();
-        popupLeft->setLayout(new GroupLayout());
-        new CheckBox(popupLeft, "Another check box");
-
-        window = new Window(this, "Basic widgets");
-        window->setPosition(Vector2i(200, 15));
-        window->setLayout(new GroupLayout());
-
-        new Label(window, "Message dialog", "sans-bold");
-        Widget *tools = new Widget(window);
-        tools->setLayout(new BoxLayout(Orientation::Horizontal,
-                                       Alignment::Middle, 0, 6));
-        b = new Button(tools, "Info");
-        b->setCallback([&] {
-            auto dlg = new MessageDialog(this, MessageDialog::Type::Information, "Title", "This is an information message");
-            dlg->setCallback([](int result) { cout << "Dialog result: " << result << endl; });
-        });
-        b = new Button(tools, "Warn");
-        b->setCallback([&] {
-            auto dlg = new MessageDialog(this, MessageDialog::Type::Warning, "Title", "This is a warning message");
-            dlg->setCallback([](int result) { cout << "Dialog result: " << result << endl; });
-        });
-        b = new Button(tools, "Ask");
-        b->setCallback([&] {
-            auto dlg = new MessageDialog(this, MessageDialog::Type::Warning, "Title", "This is a question message", "Yes", "No", true);
-            dlg->setCallback([](int result) { cout << "Dialog result: " << result << endl; });
-        });
-
-        vector<pair<int, string>>
-            icons = loadImageDirectory(mNVGContext, "icons");
-        #if defined(_WIN32)
-            string resourcesFolderPath("../resources/");
-        #else
-            string resourcesFolderPath("./");
-        #endif
-
-        new Label(window, "Image panel & scroll panel", "sans-bold");
-        PopupButton *imagePanelBtn = new PopupButton(window, "Image Panel");
-        imagePanelBtn->setIcon(ENTYPO_ICON_FOLDER);
-        popup = imagePanelBtn->popup();
-        VScrollPanel *vscroll = new VScrollPanel(popup);
-        ImagePanel *imgPanel = new ImagePanel(vscroll);
-        imgPanel->setImages(icons);
-        popup->setFixedSize(Vector2i(245, 150));
 
         auto imageWindowLayout = new AdvancedGridLayout({0},{30,15,0},10);
         imageWindowLayout->setColStretch(0,1);
         imageWindowLayout->setRowStretch(2,1);
 
         auto imageWindow = new Window(this, "Slide Canvas");
-        imageWindow->setPosition(Vector2i(425, 15));
-        imageWindow->setSize(Vector2i(600,600));
+        imageWindow->setPosition(Vector2i(250, 15));
+        imageWindow->setSize(Vector2i(900,700));
         imageWindow->setLayout(imageWindowLayout);
+        mSlideCanvas = new SlideCanvas(imageWindow);
+        imageWindowLayout->setAnchor(mSlideCanvas, AdvancedGridLayout::Anchor(0,2));
 
-        SlideCanvas *sc = new SlideCanvas(imageWindow);
-        imageWindowLayout->setAnchor(sc, AdvancedGridLayout::Anchor(0,2));
-
-        tools = new Widget(imageWindow);
+        Widget *tools = new Widget(imageWindow);
         tools->setLayout(new BoxLayout(Orientation::Horizontal,Alignment::Middle,0,6));
         imageWindowLayout->setAnchor(tools,AdvancedGridLayout::Anchor(0,0));
 
-        SlideImage *imagetest = new SlideImage(sc,"/home/david/Desktop/Cute Photos/IMG_6253.jpg");
-        imagetest->mCanvas = sc;
+        SlideImage *imagetest = new SlideImage(mSlideCanvas,"/home/david/Desktop/Cute Photos/IMG_6253.jpg");
+        imagetest->mCanvas = mSlideCanvas;
 
-        b = new Button(tools,"Add JPEG");
-        b->setCallback([&] {cout<<"Add Jpeg\n";});
+        imagetest = new SlideImage(mSlideCanvas,"/home/david/Desktop/Cute Photos/P1000252.jpg");
+        imagetest->mCanvas = mSlideCanvas;
+
+        Button *b = new Button(tools,"Add JPEG");
+        b->setCallback([&] {
+        	string file = file_dialog(
+                    {  {"jpg", "jpg file"},  {"jpeg", "jpeg file"} }, false);
+            cout << "Adding image: " << file.c_str() << endl;
+            imagetest = new SlideImage(mSlideCanvas,file);
+            imagetest->mCanvas = mSlideCanvas;
+        });
         b = new Button(tools,"Add Text");
         b->setCallback([&] {cout<<"Add Text\n";});
 
+        window = new Window(this, "Properties");
+        window->setPosition(Vector2i(15, 275));
+        window->setLayout(new GroupLayout());
 
-        new Label(window, "File dialog", "sans-bold");
+		new Label(window, "Position:", "sans-bold");
+		mImagePosition = new TextBox(window);
+		mImagePosition->setEditable(true);
+		mImagePosition->setFixedSize(Vector2i(130, 20));
+		mImagePosition->setValue("800, 400");
+		mImagePosition->setUnits("Px");
+		mImagePosition->setDefaultValue("1080");
+		mImagePosition->setFontSize(16);
+		mImagePosition->setFormat("^[0-9]{1,4}\\s*[,]\\s*[0-9]{1,4}$");
+
+		new Label(window, "Size:", "sans-bold");
+		mImageSize = new TextBox(window);
+		mImageSize->setEditable(true);
+		mImageSize->setFixedSize(Vector2i(130, 20));
+		mImageSize->setValue("800 x 400");
+		mImageSize->setUnits("Px");
+		mImageSize->setDefaultValue("1080");
+		mImageSize->setFontSize(16);
+		mImageSize->setFormat("^[0-9]{1,4}\\s*[,]\\s*[0-9]{1,4}$");
+
+        new Label(window, "Image File:", "sans-bold");
+        new Label(window, "test.jpeg", "sans-bold");
         tools = new Widget(window);
         tools->setLayout(new BoxLayout(Orientation::Horizontal,
                                        Alignment::Middle, 0, 6));
-        b = new Button(tools, "Open");
+        b = new Button(tools, "Change Image");
         b->setCallback([&] {
-            cout << "File dialog result: " << file_dialog(
-                    { {"png", "Portable Network Graphics"}, {"txt", "Text file"} }, false) << endl;
-        });
-        b = new Button(tools, "Save");
-        b->setCallback([&] {
-            cout << "File dialog result: " << file_dialog(
-                    { {"png", "Portable Network Graphics"}, {"txt", "Text file"} }, true) << endl;
+
         });
 
-        new Label(window, "Combo box", "sans-bold");
-        new ComboBox(window, { "Combo box item 1", "Combo box item 2", "Combo box item 3"});
-        new Label(window, "Check box", "sans-bold");
-        CheckBox *cb = new CheckBox(window, "Flag 1",
-            [](bool state) { cout << "Check box 1 state: " << state << endl; }
-        );
-        cb->setChecked(true);
-        cb = new CheckBox(window, "Flag 2",
-            [](bool state) { cout << "Check box 2 state: " << state << endl; }
-        );
-        new Label(window, "Progress bar", "sans-bold");
-        mProgress = new ProgressBar(window);
-
-        new Label(window, "Slider and text box", "sans-bold");
-
-        Widget *panel = new Widget(window);
-        panel->setLayout(new BoxLayout(Orientation::Horizontal,
-                                       Alignment::Middle, 0, 20));
-
-        Slider *slider = new Slider(panel);
-        slider->setValue(0.5f);
-        slider->setFixedWidth(80);
-
-        TextBox *textBox = new TextBox(panel);
-        textBox->setFixedSize(Vector2i(60, 25));
-        textBox->setValue("50");
-        textBox->setUnits("%");
-        slider->setCallback([textBox](float value) {
-            textBox->setValue(std::to_string((int) (value * 100)));
-        });
-        slider->setFinalCallback([&](float value) {
-            cout << "Final slider value: " << (int) (value * 100) << endl;
-        });
-        textBox->setFixedSize(Vector2i(60,25));
-        textBox->setFontSize(20);
-        textBox->setAlignment(TextBox::Alignment::Right);
+        new Label(window, "Image Scaling", "sans-bold");
+        mImageScaling = new ComboBox(window, { "Crop", "Fit", "Fill"});
 
         performLayout();
 
@@ -313,8 +205,6 @@ public:
     }
 
     virtual void draw(NVGcontext *ctx) {
-        /* Animate the scrollbar */
-        mProgress->setValue(std::fmod((float) glfwGetTime() / 10, 1.0f));
 
         /* Draw the user interface */
         Screen::draw(ctx);
@@ -322,16 +212,25 @@ public:
 
     virtual void drawContents() {
         using namespace nanogui;
-
-
     }
-private:
-    nanogui::ProgressBar *mProgress;
-    nanogui::GLShader mShader;
 
-    using imagesDataType = vector<pair<GLTexture, GLTexture::handleType>>;
-    imagesDataType mImagesData;
-    int mCurrentImage;
+    void UpdateScreenSize( const std::string &str)
+    {
+    	sscanf(str.c_str(),"%d x %d",&mScreenWidth,&mScreenHeight);
+    }
+
+
+    void UpdateScreenToTextbox(){}
+private:
+    nanogui::SlideCanvas *mSlideCanvas;
+    nanogui::TextBox *mImagePosition, *mImageSize;
+    nanogui::TextBox *mScreenSize;
+    nanogui::TextBox *mDissolveTime, *mSlideTime;
+    nanogui::ComboBox *mImageScaling;
+
+    uint32_t mDissolveTimeMillis, mSlideTimeMillis;
+    uint32_t mScreenWidth, mScreenHeight;
+    uint32_t mImageWidth, mImageHeight;
 };
 
 int main(int /* argc */, char ** /* argv */) {
