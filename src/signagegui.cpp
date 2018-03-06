@@ -132,11 +132,11 @@ public:
         tools->setLayout(new BoxLayout(Orientation::Horizontal,Alignment::Middle,0,6));
         imageWindowLayout->setAnchor(tools,AdvancedGridLayout::Anchor(0,0));
 
-        SlideImage *imagetest = new SlideImage(mSlideCanvas,"/home/david/Desktop/Cute Photos/IMG_6253.jpg");
-        imagetest->mCanvas = mSlideCanvas;
+		SlideImage *imagetest;// = new SlideImage(mSlideCanvas, "/home/david/Desktop/Cute Photos/IMG_6253.jpg");
+        //imagetest->mCanvas = mSlideCanvas;
 
-        imagetest = new SlideImage(mSlideCanvas,"/home/david/Desktop/Cute Photos/P1000252.jpg");
-        imagetest->mCanvas = mSlideCanvas;
+        //imagetest = new SlideImage(mSlideCanvas,"/home/david/Desktop/Cute Photos/P1000252.jpg");
+        //imagetest->mCanvas = mSlideCanvas;
 
         Button *b = new Button(tools,"Add JPEG");
         b->setCallback([&] {

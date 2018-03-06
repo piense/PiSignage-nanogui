@@ -123,7 +123,7 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, glMajor);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, glMinor);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     glfwWindowHint(GLFW_SAMPLES, nSamples);
     glfwWindowHint(GLFW_RED_BITS, colorBits);
@@ -398,7 +398,7 @@ void Screen::drawWidgets() {
 
     glfwMakeContextCurrent(mGLFWWindow);
 
-    glfwGetFramebufferSize(mGLFWWindow, &mFBSize[0], &mFBSize[1]);
+//    glfwGetFramebufferSize(mGLFWWindow, &mFBSize[0], &mFBSize[1]);
     glfwGetWindowSize(mGLFWWindow, &mSize[0], &mSize[1]);
 
 #if defined(_WIN32) || defined(__linux__)
@@ -411,7 +411,7 @@ void Screen::drawWidgets() {
 #endif
 
     glViewport(0, 0, mFBSize[0], mFBSize[1]);
-    glBindSampler(0, 0);
+//    glBindSampler(0, 0);
     nvgBeginFrame(mNVGContext, mSize[0], mSize[1], mPixelRatio);
 
     draw(mNVGContext);

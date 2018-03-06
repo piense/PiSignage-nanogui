@@ -53,8 +53,8 @@ static GLuint createShader_helper(GLint type, const std::string &name,
             std::cerr << "vertex shader";
         else if (type == GL_FRAGMENT_SHADER)
             std::cerr << "fragment shader";
-        else if (type == GL_GEOMETRY_SHADER)
-            std::cerr << "geometry shader";
+//        else if (type == GL_GEOMETRY_SHADER)
+//            std::cerr << "geometry shader";
         std::cerr << " \"" << name << "\":" << std::endl;
         std::cerr << shader_string << std::endl << std::endl;
         glGetShaderInfoLog(id, 512, nullptr, buffer);
@@ -96,8 +96,8 @@ bool GLShader::init(const std::string &name,
     mName = name;
     mVertexShader =
         createShader_helper(GL_VERTEX_SHADER, name, defines, vertex_str);
-    mGeometryShader =
-        createShader_helper(GL_GEOMETRY_SHADER, name, defines, geometry_str);
+//    mGeometryShader =
+//        createShader_helper(GL_GEOMETRY_SHADER, name, defines, geometry_str);
     mFragmentShader =
         createShader_helper(GL_FRAGMENT_SHADER, name, defines, fragment_str);
 

@@ -30,6 +30,17 @@ docs/_build
 docs/doxyoutput
 docs/api
 
+# Directories and files created on windows
+Debug
+example1.dir
+example2.dir
+example3.dir
+example4.dir
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.suo
+
 # entypo update generation
 # this is it's own repo: https://github.com/svenevs/nanogui-entypo
 # should not ever be needed again unless there are new
