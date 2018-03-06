@@ -16,7 +16,7 @@
 #include <nanogui/screen.h>
 #include <nanogui/layout.h>
 #include <nanogui/serializer/core.h>
-#include <nanogui/slidecanvas.h>
+#include <nanogui/mediaitembase.h>
 #include <math.h>
 
 // Includes for the GLTexture class.
@@ -26,35 +26,32 @@
 
 NAMESPACE_BEGIN(nanogui)
 
-SlideImage::SlideImage(Widget *parent, const std::string& fileName)
+MediaItemBase::MediaItemBase(Widget *parent, const std::string& fileName)
     : Widget(parent), mCanvasImagePos(.5,.5), mCanvasImageSize(.25,.25),
-	  mImageHandle(0), mImageMode(1), mIsXSnap(false), mIsYSnap(false){
+	  mIsXSnap(false), mIsYSnap(false){
 	mPos = {40,40};
 	mSize = {90, 90};
 	mHandleSize = 10;
 	mDrag = false;
-	mFileName = fileName;
 }
 
-SlideImage::~SlideImage()
+MediaItemBase::~MediaItemBase()
 {
     //delete texture;
 }
 
-Vector2i SlideImage::preferredSize(NVGcontext *ctx) const {
-
-
+Vector2i MediaItemBase::preferredSize(NVGcontext *ctx) const {
     Vector2i result = mSize;
 
     return result;
 }
 
-void SlideImage::performLayout(NVGcontext *ctx) {
+void MediaItemBase::performLayout(NVGcontext *ctx) {
 
 	Widget::performLayout(ctx);
 }
 
-void SlideImage::draw(NVGcontext *ctx) {
+void MediaItemBase::draw(NVGcontext *ctx) {
     int ds = mTheme->mWindowDropShadowSize, cr = mTheme->mWindowCornerRadius;
     int hh = mTheme->mWindowHeaderHeight;
 
@@ -86,7 +83,7 @@ void SlideImage::draw(NVGcontext *ctx) {
     Widget::draw(ctx);
 }
 
-void SlideImage::drawSnaps(NVGcontext *ctx){
+void MediaItemBase::drawSnaps(NVGcontext *ctx){
 	int thickness = 2;
 
 	if(mIsXSnap){
@@ -119,7 +116,7 @@ void SlideImage::drawSnaps(NVGcontext *ctx){
 	}
 }
 
-void SlideImage::drawImage(NVGcontext *ctx){
+void MediaItemBase::drawImage(NVGcontext *ctx){
 	if(mImageHandle == 0){
 		mImageHandle = nvgCreateImage(ctx, mFileName.c_str(), 0);
 	}
@@ -183,7 +180,7 @@ void SlideImage::drawImage(NVGcontext *ctx){
 	nvgFill(ctx);
 }
 
-void SlideImage::drawHandles(NVGcontext *ctx){
+void MediaItemBase::drawHandles(NVGcontext *ctx){
 	nvgFillColor(ctx, NVGcolor{0,0,0,1});
 
 	int x[3] = {0,mSize.x()/2-mHandleSize/2,mSize.x()-mHandleSize};
@@ -224,11 +221,11 @@ void SlideImage::drawHandles(NVGcontext *ctx){
 	}
 }
 
-void SlideImage::dispose() {
+void MediaItemBase::dispose() {
 }
 
 
-bool SlideImage::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
+bool MediaItemBase::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
                             int button, int /* modifiers */) {
 
 	Vector2i cp = p.cwiseMax(mCanvas->mCanvasPos).cwiseMin(mCanvas->mCanvasPos+mCanvas->mCanvasSize);
@@ -298,19 +295,19 @@ bool SlideImage::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
     return true;
 }
 
-void SlideImage::UpdateCanvasCoordinates(){
+void MediaItemBase::UpdateCanvasCoordinates(){
     mCanvasImagePos.x() = ((float) (mPos.x()+mSize.x()/2) - mCanvas->mCanvasPos.x()) / mCanvas->mCanvasSize.x();
     mCanvasImagePos.y() = ((float) (mPos.y()+mSize.y()/2) - mCanvas->mCanvasPos.y()) / mCanvas->mCanvasSize.y();
     mCanvasImageSize.x() = ((float)(mSize.x()-mHandleSize)) / mCanvas->mCanvasSize.x();
     mCanvasImageSize.y() = ((float)(mSize.y()-mHandleSize)) / mCanvas->mCanvasSize.y();
 }
 
-bool SlideImage::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers){
+bool MediaItemBase::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers){
 	mLastMouse = p-mPos;
 	return Widget::mouseMotionEvent(p, rel, button, modifiers);
 }
 
-bool SlideImage::mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) {
+bool MediaItemBase::mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) {
 	if (down == false)
 	{
 		mIsYSnap = false;
@@ -353,7 +350,7 @@ bool SlideImage::mouseButtonEvent(const Vector2i &p, int button, bool down, int 
     return false;
 }
 
-bool SlideImage::focusEvent(bool focused)
+bool MediaItemBase::focusEvent(bool focused)
 {
 	UpdateCanvasCoordinates();
 	if(true)
@@ -363,29 +360,25 @@ bool SlideImage::focusEvent(bool focused)
 	return Widget::focusEvent(focused);
 }
 
-bool SlideImage::scrollEvent(const Vector2i &p, const Vector2f &rel) {
+bool MediaItemBase::scrollEvent(const Vector2i &p, const Vector2f &rel) {
     Widget::scrollEvent(p, rel);
     return true;
 }
 
-void SlideImage::refreshRelativePlacement() {
+void MediaItemBase::refreshRelativePlacement() {
     /* Overridden in \ref Popup */
 }
 
-void SlideImage::save(Serializer &s) const {
+void MediaItemBase::save(Serializer &s) const {
     Widget::save(s);
 }
 
-bool SlideImage::load(Serializer &s) {
+bool MediaItemBase::load(Serializer &s) {
     if (!Widget::load(s)) return false;
 //    if (!s.get("title", mTitle)) return false;
 //    if (!s.get("modal", mModal)) return false;
 
     return true;
 }
-
-
-
-
 
 NAMESPACE_END(nanogui)

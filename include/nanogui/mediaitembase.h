@@ -1,5 +1,9 @@
+#pragma once
+
 /*
-    nanogui/window.h -- Top-level window widget
+    nanogui/mediaitembase.h -- Base for all slide media items
+
+	PiSigage by David Corrigan
 
     NanoGUI was developed by Wenzel Jakob <wenzel.jakob@epfl.ch>.
     The widget drawing code is based on the NanoVG demo application
@@ -13,12 +17,7 @@
 #pragma once
 
 #include <nanogui/widget.h>
-#include <nanogui/slidecanvasbase.h>
 
-// Includes for the GLTexture class.
-#include <cstdint>
-#include <memory>
-#include <utility>
 
 NAMESPACE_BEGIN(nanogui)
 
@@ -27,11 +26,11 @@ NAMESPACE_BEGIN(nanogui)
  *
  * \brief Represents an image on the slide, must be place on a slidecanvas
  */
-class NANOGUI_EXPORT SlideImage : public Widget {
-    friend class Popup;
+class NANOGUI_EXPORT MediaItemBase : public Widget {
+
 public:
-    SlideImage(Widget *parent, const std::string& fileName);
-    ~SlideImage();
+    virtual void MediaItemBase() = 0;
+    virtual void ~MediaItemBase() = 0;
 
     /// Return the panel used to house window buttons
     Widget *buttonPanel();
@@ -57,36 +56,24 @@ public:
     virtual bool load(Serializer &s) override;
     virtual bool focusEvent(bool focused) override;
 
-    //TODO make private with accessors
-    //Relative to canvas
-    Vector2f mCanvasImagePos;
-    Vector2f mCanvasImageSize;
+    Vector2f mCanvasSize; //0-1 tuple, 0,0 is top left
+    Vector2f mCanvasPos; //0-1 tuple, 0,0 is top left
 
-    SlideCanvasBase *mCanvas;
-
-    //TODO: Enum
-    int mImageMode; //0=Crop, 1=Scale, 2=Stretch
+    //From Widget: Vector2i mPos, mSize; Relative to parent frame
 
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
     virtual void refreshRelativePlacement();
 
     void drawHandles(NVGcontext *ctx);
-
-    void drawImage(NVGcontext *ctx);
     void drawSnaps(NVGcontext *ctx);
-
-    int mImageHandle;
-
-
 
     //Screen ratio width/height of the target screen resolution
     float windowRatio;
 
     bool mDrag;
 
-    std::string mFileName;
-
+    //Size of drag handles on canvas
     int mHandleSize;
 
     Vector2i mLastMouse;
@@ -99,6 +86,7 @@ protected:
 
     bool mIsXSnap;
     bool mIsYSnap;
+
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };

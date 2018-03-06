@@ -19,7 +19,7 @@
 NAMESPACE_BEGIN(nanogui)
 
 SlideCanvas::SlideCanvas(Widget *parent)
-    : Widget(parent), mCanvasSize(16,9), mCanvasPos(0,0), windowRatio(16.0/9.0) { }
+    : Widget(parent), windowRatio(16.0/9.0),mSelectedImage(NULL){ }
 
 Vector2i SlideCanvas::preferredSize(NVGcontext *ctx) const {
     Vector2i result = Widget::preferredSize(ctx);
@@ -52,15 +52,13 @@ void SlideCanvas::draw(NVGcontext *ctx) {
         windowRatio = 16.0/9.0;
 		float widgetRatio = ((float)(mSize.x()-20)) / (mSize.y()-20);
 
-		Vector2i inset;
-		inset.x() = windowRatio > widgetRatio ? mSize.x() - 20 : (mSize.y() - 20)*windowRatio;
-		inset.y() = windowRatio > widgetRatio ? (mSize.x() - 20)/windowRatio : mSize.y() - 20;
+		mCanvasSize.x() = windowRatio > widgetRatio ? mSize.x() - 20 : (mSize.y() - 20)*windowRatio;
+		mCanvasSize.y() = windowRatio > widgetRatio ? (mSize.x() - 20)/windowRatio : mSize.y() - 20;
+		mCanvasPos.x() = (windowRatio > widgetRatio ? 10 : (mSize.x() - mCanvasSize.x()) / 2);
+		mCanvasPos.y() = (windowRatio > widgetRatio ? (mSize.y() - mCanvasSize.y()) / 2 : 10);
 
 		nvgBeginPath(ctx);
-		nvgRect(ctx,
-				(windowRatio > widgetRatio ? 10 : (mSize.x() - inset.x()) / 2)+mPos.x(),
-						(windowRatio > widgetRatio ? (mSize.y() - inset.y()) / 2 : 10)+mPos.y(),
-				inset.x(), inset.y());
+		nvgRect(ctx, mCanvasPos.x()+mPos.x(), mCanvasPos.y()+mPos.y(), mCanvasSize.x(), mCanvasSize.y());
 		NVGcolor col = NVGcolor({0.0,0.0,0.0,1.0});
 		nvgFillColor(ctx, col);
 		nvgFill(ctx);
@@ -69,7 +67,31 @@ void SlideCanvas::draw(NVGcontext *ctx) {
 
     nvgRestore(ctx);
 
-    Widget::draw(ctx);
+    //Draw child widgets
+    nvgSave(ctx);
+    nvgTranslate(ctx, mPos.x(), mPos.y());
+    for (auto child : mChildren) {
+        if (child->visible()) {
+            nvgSave(ctx);
+            nvgIntersectScissor(ctx, mCanvasPos.x(),mCanvasPos.y(), mCanvasSize.x(), mCanvasSize.y());
+            nvgIntersectScissor(ctx, child->position().x(), child->position().y(),
+            		child->size().x(), child->size().y());
+            child->draw(ctx);
+            nvgRestore(ctx);
+        }
+    }
+    nvgRestore(ctx);
+}
+
+void SlideCanvas::ImageItemUpdate(SlideImage *image)
+{
+	mSelectedImage = image;
+}
+
+void SlideCanvas::ImageLostFocus(SlideImage *image){
+	if(mSelectedImage == image){
+		mSelectedImage = NULL;
+	}
 }
 
 void SlideCanvas::dispose() {

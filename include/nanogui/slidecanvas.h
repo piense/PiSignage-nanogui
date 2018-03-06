@@ -13,6 +13,7 @@
 #pragma once
 
 #include <nanogui/widget.h>
+#include <nanogui/slidecanvasbase.h>
 
 NAMESPACE_BEGIN(nanogui)
 
@@ -21,7 +22,7 @@ NAMESPACE_BEGIN(nanogui)
  *
  * \brief Basically an empty area to drag widgets around.
  */
-class NANOGUI_EXPORT SlideCanvas : public Widget {
+class NANOGUI_EXPORT SlideCanvas : public Widget, public SlideCanvasBase {
     friend class Popup;
 public:
     SlideCanvas(Widget *parent);
@@ -52,14 +53,19 @@ public:
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
 
-    Vector2i mCanvasPos;
-    Vector2i mCanvasSize;
+    //TODO: Generalize with MediaItem base class
+    virtual void ImageItemUpdate(SlideImage *image) override;
+    virtual void ImageLostFocus(SlideImage *image) override;
+
+    SlideImage *selectedImage(){return mSelectedImage;}
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
     virtual void refreshRelativePlacement();
 protected:
     //Screen ratio width/height of the target screen resolution
     float windowRatio;
+
+    SlideImage *mSelectedImage;
 
 
 public:

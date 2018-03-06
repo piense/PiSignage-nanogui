@@ -153,6 +153,9 @@ public:
         window->setPosition(Vector2i(15, 275));
         window->setLayout(new GroupLayout());
 
+
+        //This will probably get moved into the specific MediaItem classes somehow
+        /*
 		new Label(window, "Position:", "sans-bold");
 		mImagePosition = new TextBox(window);
 		mImagePosition->setEditable(true);
@@ -185,6 +188,14 @@ public:
 
         new Label(window, "Image Scaling", "sans-bold");
         mImageScaling = new ComboBox(window, { "Crop", "Fit", "Fill"});
+        mImageScaling->setCallback( [&] (const int i) {
+        	if(mSlideCanvas->selectedImage() != NULL)
+        		{
+        			mSlideCanvas->selectedImage()->mImageMode = i;
+        		}
+			return true;
+		});*/
+
 
         performLayout();
 
@@ -205,6 +216,22 @@ public:
     }
 
     virtual void draw(NVGcontext *ctx) {
+
+    	//TODO: Make this event driven
+
+    	char tempString[200];
+    	/*
+    	if(mSlideCanvas->selectedImage() != NULL){
+    		sprintf(&tempString[0],"%d, %d",
+    				(uint32_t)(mSlideCanvas->selectedImage()->mCanvasImagePos.x()*mScreenWidth),
+    						(uint32_t)(mSlideCanvas->selectedImage()->mCanvasImagePos.y()*mScreenHeight));
+    		mImagePosition->setValue(std::string(&tempString[0]));
+
+    		sprintf(&tempString[0],"%d x %d",
+    		    				(uint32_t)(mSlideCanvas->selectedImage()->mCanvasImageSize.x()*mScreenWidth),
+								(uint32_t)(mSlideCanvas->selectedImage()->mCanvasImageSize.y()*mScreenHeight));
+			mImageSize->setValue(std::string(&tempString[0]));
+    	}*/
 
         /* Draw the user interface */
         Screen::draw(ctx);
