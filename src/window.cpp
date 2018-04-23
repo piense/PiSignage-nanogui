@@ -67,8 +67,10 @@ void Window::draw(NVGcontext *ctx) {
     int ds = mTheme->mWindowDropShadowSize, cr = mTheme->mWindowCornerRadius;
     int hh = mTheme->mWindowHeaderHeight;
 
-    if(mStaleLayout)
-    	performLayout(ctx);
+	if (mStaleLayout) {
+		performLayout(ctx);
+		mStaleLayout = false;
+	}
 
     /* Draw window */
     nvgSave(ctx);

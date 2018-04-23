@@ -83,6 +83,7 @@ void SlideCanvas::draw(NVGcontext *ctx) {
     nvgRestore(ctx);
 }
 
+/*
 void SlideCanvas::ImageItemUpdate(SlideImage *image)
 {
 	mSelectedImage = image;
@@ -92,7 +93,7 @@ void SlideCanvas::ImageLostFocus(SlideImage *image){
 	if(mSelectedImage == image){
 		mSelectedImage = NULL;
 	}
-}
+}*/
 
 void SlideCanvas::dispose() {
 

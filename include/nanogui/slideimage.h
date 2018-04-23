@@ -14,6 +14,7 @@
 
 #include <nanogui/widget.h>
 #include <nanogui/slidecanvasbase.h>
+#include <nanogui/mediaitembase.h>
 
 // Includes for the GLTexture class.
 #include <cstdint>
@@ -27,75 +28,34 @@ NAMESPACE_BEGIN(nanogui)
  *
  * \brief Represents an image on the slide, must be place on a slidecanvas
  */
-class NANOGUI_EXPORT SlideImage : public Widget {
+class NANOGUI_EXPORT SlideImage : public MediaItemBase {
     friend class Popup;
 public:
     SlideImage(Widget *parent, const std::string& fileName);
     ~SlideImage();
-
-    /// Return the panel used to house window buttons
-    Widget *buttonPanel();
 
     /// Dispose the window
     void dispose();
 
     /// Draw the window
     virtual void draw(NVGcontext *ctx) override;
-    /// Handle a mouse motion event (default implementation: propagate to children)
-    virtual bool mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override;
-    /// Handle window drag events
-    virtual bool mouseDragEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override;
-    /// Handle mouse events recursively and bring the current window to the top
-    virtual bool mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) override;
-    /// Accept scroll events and propagate them to the widget under the mouse cursor
-    virtual bool scrollEvent(const Vector2i &p, const Vector2f &rel) override;
-    /// Compute the preferred size of the widget
-    virtual Vector2i preferredSize(NVGcontext *ctx) const override;
-    /// Invoke the associated layout generator to properly place child widgets, if any
-    virtual void performLayout(NVGcontext *ctx) override;
+
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
-    virtual bool focusEvent(bool focused) override;
-
-    //TODO make private with accessors
-    //Relative to canvas
-    Vector2f mCanvasImagePos;
-    Vector2f mCanvasImageSize;
-
-    SlideCanvasBase *mCanvas;
 
     //TODO: Enum
     int mImageMode; //0=Crop, 1=Scale, 2=Stretch
 
 protected:
-    /// Internal helper function to maintain nested window position values; overridden in \ref Popup
-    virtual void refreshRelativePlacement();
-
-    void drawHandles(NVGcontext *ctx);
-
     void drawImage(NVGcontext *ctx);
-    void drawSnaps(NVGcontext *ctx);
 
     int mImageHandle;
-
-
 
     //Screen ratio width/height of the target screen resolution
     float windowRatio;
 
-    bool mDrag;
-
     std::string mFileName;
-
-    int mHandleSize;
-
-    Vector2i mLastMouse;
-    Vector2i mMouseDownWidgetPos;
-    Vector2i mMouseDownWidgetSize;
-    Vector2i mMouseDownPos;
-    Vector2i mMouseDownHandle;
-
-    void UpdateCanvasCoordinates();
+	bool mFileLoadError;
 
     bool mIsXSnap;
     bool mIsYSnap;

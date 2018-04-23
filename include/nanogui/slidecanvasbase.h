@@ -32,8 +32,8 @@ class NANOGUI_EXPORT SlideCanvasBase {
 public:
     Vector2i mCanvasPos;
     Vector2i mCanvasSize;
-    virtual void ImageItemUpdate(SlideImage *image) = 0;
-    virtual void ImageLostFocus(SlideImage *image) = 0;
+    //virtual void ImageItemUpdate(SlideImage *image) = 0;
+    //virtual void ImageLostFocus(SlideImage *image) = 0;
 };
 
 NAMESPACE_END(nanogui)

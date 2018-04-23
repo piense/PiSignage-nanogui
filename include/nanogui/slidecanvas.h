@@ -54,8 +54,8 @@ public:
     virtual bool load(Serializer &s) override;
 
     //TODO: Generalize with MediaItem base class
-    virtual void ImageItemUpdate(SlideImage *image) override;
-    virtual void ImageLostFocus(SlideImage *image) override;
+    //virtual void ImageItemUpdate(SlideImage *image) override;
+    //virtual void ImageLostFocus(SlideImage *image) override;
 
     SlideImage *selectedImage(){return mSelectedImage;}
 protected:

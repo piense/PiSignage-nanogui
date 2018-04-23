@@ -320,6 +320,7 @@ add_library(nanogui-obj OBJECT
   include/nanogui/window.h src/window.cpp
   include/nanogui/slidecanvas.h src/slidecanvas.cpp
   include/nanogui/slideimage.h src/slideimage.cpp
+  include/nanogui/mediaitembase.h src/mediaitembase.cpp
   include/nanogui/popup.h src/popup.cpp
   include/nanogui/checkbox.h src/checkbox.cpp
   include/nanogui/button.h src/button.cpp

@@ -26,8 +26,8 @@
 
 NAMESPACE_BEGIN(nanogui)
 
-MediaItemBase::MediaItemBase(Widget *parent, const std::string& fileName)
-    : Widget(parent), mCanvasImagePos(.5,.5), mCanvasImageSize(.25,.25),
+MediaItemBase::MediaItemBase(Widget *parent)
+    : Widget(parent), mCanvasPos(.5,.5), mCanvasSize(.25,.25),
 	  mIsXSnap(false), mIsYSnap(false){
 	mPos = {40,40};
 	mSize = {90, 90};
@@ -35,34 +35,33 @@ MediaItemBase::MediaItemBase(Widget *parent, const std::string& fileName)
 	mDrag = false;
 }
 
+/*
 MediaItemBase::~MediaItemBase()
 {
     //delete texture;
-}
+}*/
 
 Vector2i MediaItemBase::preferredSize(NVGcontext *ctx) const {
     Vector2i result = mSize;
-
     return result;
 }
 
 void MediaItemBase::performLayout(NVGcontext *ctx) {
+	//TODO: Compensate for edges
+	mSize.x() = mCanvas->mCanvasSize.x() * mCanvasSize.x();
+	mSize.y() = mCanvas->mCanvasSize.y() * mCanvasSize.y();
 
-	Widget::performLayout(ctx);
+	mPos.x() = mCanvas->mCanvasSize.x() * mCanvasPos.x() + mCanvas->mCanvasPos.x() - mSize.x() / 2.0;
+	mPos.y() = mCanvas->mCanvasSize.y() * mCanvasPos.y() + mCanvas->mCanvasPos.y() - mSize.y() / 2.0;
 }
 
+//Need to figure out how this aligns with the 
+//parent classes. Should probably be called
+//after the parent classes drawing,
+//or maybe we create a virtual method for the parent class to
+//override.
 void MediaItemBase::draw(NVGcontext *ctx) {
-    int ds = mTheme->mWindowDropShadowSize, cr = mTheme->mWindowCornerRadius;
-    int hh = mTheme->mWindowHeaderHeight;
-
-    /* Draw window */
     nvgSave(ctx);
-
-    /*
-    mSize = {mCanvas->mCanvasSize.x() * mImageSize.x(),
-    		mCanvas->mCanvasSize.y() * mImageSize.y()};*/
-
-    drawImage(ctx);
 
     //Outer widget rectangle
     if(mFocused){
@@ -116,70 +115,6 @@ void MediaItemBase::drawSnaps(NVGcontext *ctx){
 	}
 }
 
-void MediaItemBase::drawImage(NVGcontext *ctx){
-	if(mImageHandle == 0){
-		mImageHandle = nvgCreateImage(ctx, mFileName.c_str(), 0);
-	}
-
-	int w, h;
-
-	nvgImageSize(ctx, mImageHandle, &w, &h);
-
-	float inRatio = ((float)w)/h;
-	float outRatio = ((float)(mSize.x()-mHandleSize))/(mSize.y()-mHandleSize);
-	int maxOutputWidth = mSize.x()-mHandleSize, maxOutputHeight = mSize.y()-mHandleSize;
-	int outputWidth = 0, outputHeight = 0;
-
-	switch(mImageMode)
-	{
-		case 0:
-			if(inRatio > outRatio)
-			{
-				outputHeight = maxOutputHeight;
-				outputWidth = ((float)maxOutputHeight)*inRatio;
-			}else{
-				outputWidth = maxOutputWidth;
-				outputHeight = ((float)maxOutputWidth)/inRatio;
-			}
-			break;
-		case 1:
-			if(inRatio < outRatio)
-			{
-				outputHeight = maxOutputHeight;
-				outputWidth = ((float)maxOutputHeight)*inRatio;
-			}else{
-				outputWidth = maxOutputWidth;
-				outputHeight = ((float)maxOutputWidth)/inRatio;
-			}
-			break;
-		case 2:
-			outputHeight = maxOutputHeight;
-			outputWidth = maxOutputWidth;
-			break;
-	}
-
-
-
-	NVGpaint imgPaint = nvgImagePattern(ctx,
-			mPos.x()+(mSize.x()/2)-outputWidth/2,
-			mPos.y()+(mSize.y()/2)-outputHeight/2,
-			outputWidth,outputHeight,
-			0, mImageHandle, 1);
-
-	nvgBeginPath(ctx);
-
-	if(mImageMode == 1)
-		nvgRect(ctx,
-				mPos.x()+(mSize.x()/2)-outputWidth/2,
-				mPos.y()+(mSize.y()/2)-outputHeight/2,
-				outputWidth,outputHeight);
-	else
-		nvgRect(ctx, mPos.x()+mHandleSize/2,mPos.y()+mHandleSize/2,mSize.x()-mHandleSize,mSize.y()-mHandleSize);
-
-	nvgFillPaint(ctx, imgPaint);
-	nvgFill(ctx);
-}
-
 void MediaItemBase::drawHandles(NVGcontext *ctx){
 	nvgFillColor(ctx, NVGcolor{0,0,0,1});
 
@@ -197,8 +132,11 @@ void MediaItemBase::drawHandles(NVGcontext *ctx){
 			if(mMouseFocus)
 			{
 				//Yup, see if it's over the handle
-				if(mLastMouse.x() < x[xL]+mHandleSize && mLastMouse.x() > x[xL] &&
-					mLastMouse.y() < y[yL]+mHandleSize && mLastMouse.y() > y[yL]){
+				if(mLastMouse.x() < x[xL]+mHandleSize &&
+					mLastMouse.x() > x[xL]-mHandleSize &&
+					mLastMouse.y() < y[yL]+mHandleSize &&
+					mLastMouse.y() > y[yL]-mHandleSize){
+
 					nvgFillColor(ctx, NVGcolor{1,1,1,1});
 					overHandle = true;
 				}
@@ -223,7 +161,6 @@ void MediaItemBase::drawHandles(NVGcontext *ctx){
 
 void MediaItemBase::dispose() {
 }
-
 
 bool MediaItemBase::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
                             int button, int /* modifiers */) {
@@ -290,16 +227,16 @@ bool MediaItemBase::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
 	}
 
 	UpdateCanvasCoordinates();
-	mCanvas->ImageItemUpdate(this);
+	//mCanvas->ImageItemUpdate(this);
 
     return true;
 }
 
 void MediaItemBase::UpdateCanvasCoordinates(){
-    mCanvasImagePos.x() = ((float) (mPos.x()+mSize.x()/2) - mCanvas->mCanvasPos.x()) / mCanvas->mCanvasSize.x();
-    mCanvasImagePos.y() = ((float) (mPos.y()+mSize.y()/2) - mCanvas->mCanvasPos.y()) / mCanvas->mCanvasSize.y();
-    mCanvasImageSize.x() = ((float)(mSize.x()-mHandleSize)) / mCanvas->mCanvasSize.x();
-    mCanvasImageSize.y() = ((float)(mSize.y()-mHandleSize)) / mCanvas->mCanvasSize.y();
+    mCanvasPos.x() = ((float) (mPos.x()+mSize.x()/2) - mCanvas->mCanvasPos.x()) / mCanvas->mCanvasSize.x();
+    mCanvasPos.y() = ((float) (mPos.y()+mSize.y()/2) - mCanvas->mCanvasPos.y()) / mCanvas->mCanvasSize.y();
+    mCanvasSize.x() = ((float)(mSize.x()-mHandleSize)) / mCanvas->mCanvasSize.x();
+    mCanvasSize.y() = ((float)(mSize.y()-mHandleSize)) / mCanvas->mCanvasSize.y();
 }
 
 bool MediaItemBase::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers){
@@ -334,8 +271,10 @@ bool MediaItemBase::mouseButtonEvent(const Vector2i &p, int button, bool down, i
     	for(int xL = 0;xL<3;xL++){
     		for(int yL = 0;yL<3;yL++){
 				//Yup, see if it's over the handle
-				if(PosOnWidget.x() < x[xL]+mHandleSize && PosOnWidget.x() > x[xL] &&
-						PosOnWidget.y() < y[yL]+mHandleSize && PosOnWidget.y() > y[yL])
+				if(PosOnWidget.x() < x[xL]+mHandleSize &&
+					PosOnWidget.x() > x[xL]-mHandleSize &&
+					PosOnWidget.y() < y[yL]+mHandleSize &&
+					PosOnWidget.y() > y[yL]-mHandleSize)
 				{
 					mMouseDownHandle = {xL,yL};
 					xL = 3;
@@ -353,10 +292,10 @@ bool MediaItemBase::mouseButtonEvent(const Vector2i &p, int button, bool down, i
 bool MediaItemBase::focusEvent(bool focused)
 {
 	UpdateCanvasCoordinates();
-	if(true)
+/*	if(true) //Should be (focused)????
 		mCanvas->ImageItemUpdate(this);
-	if(false)
-		mCanvas->ImageLostFocus(this);
+	if(false)//Should be (!focused)???
+		mCanvas->ImageLostFocus(this);*/
 	return Widget::focusEvent(focused);
 }
 

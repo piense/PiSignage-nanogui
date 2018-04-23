@@ -27,12 +27,10 @@
 NAMESPACE_BEGIN(nanogui)
 
 SlideImage::SlideImage(Widget *parent, const std::string& fileName)
-    : Widget(parent), mCanvasImagePos(.5,.5), mCanvasImageSize(.25,.25),
-	  mImageHandle(0), mImageMode(1), mIsXSnap(false), mIsYSnap(false){
-	mPos = {40,40};
-	mSize = {90, 90};
-	mHandleSize = 10;
-	mDrag = false;
+    : MediaItemBase(parent),
+		mImageMode(1), //Image mode to scaling
+		mImageHandle(0), //unloaded state
+		mFileLoadError(false){
 	mFileName = fileName;
 }
 
@@ -41,87 +39,35 @@ SlideImage::~SlideImage()
     //delete texture;
 }
 
-Vector2i SlideImage::preferredSize(NVGcontext *ctx) const {
-
-
-    Vector2i result = mSize;
-
-    return result;
-}
-
-void SlideImage::performLayout(NVGcontext *ctx) {
-
-	Widget::performLayout(ctx);
-}
 
 void SlideImage::draw(NVGcontext *ctx) {
-    int ds = mTheme->mWindowDropShadowSize, cr = mTheme->mWindowCornerRadius;
-    int hh = mTheme->mWindowHeaderHeight;
 
-    /* Draw window */
     nvgSave(ctx);
+    
+	//Draw the image
+	drawImage(ctx);
 
-    /*
-    mSize = {mCanvas->mCanvasSize.x() * mImageSize.x(),
-    		mCanvas->mCanvasSize.y() * mImageSize.y()};*/
+	nvgRestore(ctx);
 
-    drawImage(ctx);
-
-    //Outer widget rectangle
-    if(mFocused){
-		nvgBeginPath(ctx);
-		nvgRect(ctx, mPos.x()+mHandleSize/2, mPos.y()+mHandleSize/2,
-				mSize.x()-mHandleSize, mSize.y()-mHandleSize);
-		NVGcolor col = NVGcolor{1,0,0,1};
-		nvgStrokeColor(ctx, col);
-		nvgStroke(ctx);
-
-		drawHandles(ctx);
-    }
-
-    drawSnaps(ctx);
-
-    nvgRestore(ctx);
-
-    Widget::draw(ctx);
-}
-
-void SlideImage::drawSnaps(NVGcontext *ctx){
-	int thickness = 2;
-
-	if(mIsXSnap){
-	    nvgSave(ctx);
-	    nvgScissor(ctx,0,0,mParent->width(),mParent->height());
-		nvgBeginPath(ctx);
-		nvgRect(ctx, mCanvas->mCanvasPos.x() + mCanvas->mCanvasSize.x()/2 - thickness/2,
-				mCanvas->mCanvasPos.y(),
-				thickness,
-				mCanvas->mCanvasSize.y());
-		NVGcolor col = NVGcolor{1,1,1,1};
-		nvgFillColor(ctx, col);
-		nvgFill(ctx);
-		nvgRestore(ctx);
-	}
-
-	if(mIsYSnap){
-	    nvgSave(ctx);
-	    nvgScissor(ctx,0,0,mParent->width(),mParent->height());
-		nvgBeginPath(ctx);
-		nvgRect(ctx,
-				mCanvas->mCanvasPos.x(),
-				mCanvas->mCanvasPos.y() + mCanvas->mCanvasSize.y()/2 - thickness/2,
-				mCanvas->mCanvasSize.x(),
-				thickness);
-		NVGcolor col = NVGcolor{1,1,1,1};
-		nvgFillColor(ctx, col);
-		nvgFill(ctx);
-		nvgRestore(ctx);
-	}
+	//Draw handles, borders and what not
+    MediaItemBase::draw(ctx);
 }
 
 void SlideImage::drawImage(NVGcontext *ctx){
-	if(mImageHandle == 0){
+	if (mImageHandle == 0 && mFileLoadError == false) {
 		mImageHandle = nvgCreateImage(ctx, mFileName.c_str(), 0);
+		if (mImageHandle == 0) {
+			printf("Error opening file: %s\n", mFileName.c_str());
+			mFileLoadError = true;
+			return;
+		}
+		else {
+			printf("Loaded the file.\n");
+		}
+	}
+
+	if (mFileLoadError) {
+		return;
 	}
 
 	int w, h;
@@ -133,6 +79,7 @@ void SlideImage::drawImage(NVGcontext *ctx){
 	int maxOutputWidth = mSize.x()-mHandleSize, maxOutputHeight = mSize.y()-mHandleSize;
 	int outputWidth = 0, outputHeight = 0;
 
+	//0=Crop, 1=Scale, 2=Stretch
 	switch(mImageMode)
 	{
 		case 0:
@@ -159,6 +106,10 @@ void SlideImage::drawImage(NVGcontext *ctx){
 			outputHeight = maxOutputHeight;
 			outputWidth = maxOutputWidth;
 			break;
+		default:
+			printf("Bad image mode, setting to scale\n");
+			mImageMode = 1;
+			break;
 	}
 
 
@@ -183,193 +134,7 @@ void SlideImage::drawImage(NVGcontext *ctx){
 	nvgFill(ctx);
 }
 
-void SlideImage::drawHandles(NVGcontext *ctx){
-	nvgFillColor(ctx, NVGcolor{0,0,0,1});
-
-	int x[3] = {0,mSize.x()/2-mHandleSize/2,mSize.x()-mHandleSize};
-	int y[3] = {0,mSize.y()/2-mHandleSize/2,mSize.y()-mHandleSize};
-
-	bool overHandle = false;
-
-	for(int xL = 0;xL<3;xL++){
-		for(int yL = 0;yL<3;yL++){
-			nvgBeginPath(ctx);
-			nvgRect(ctx, x[xL]+mPos.x(), y[yL]+mPos.y(), mHandleSize, mHandleSize);
-
-			//Is the mouse over the image?
-			if(mMouseFocus)
-			{
-				//Yup, see if it's over the handle
-				if(mLastMouse.x() < x[xL]+mHandleSize && mLastMouse.x() > x[xL] &&
-					mLastMouse.y() < y[yL]+mHandleSize && mLastMouse.y() > y[yL]){
-					nvgFillColor(ctx, NVGcolor{1,1,1,1});
-					overHandle = true;
-				}
-				else
-					nvgFillColor(ctx, NVGcolor{1,0,0,1});
-			}else{
-				nvgFillColor(ctx, NVGcolor{1,0,0,1});
-			}
-
-			nvgFill(ctx);
-		}
-	}
-
-	//Highlight the middle handle to show we're moving
-	if(mMouseFocus && !overHandle){
-		nvgBeginPath(ctx);
-		nvgRect(ctx, x[1]+mPos.x(), y[1]+mPos.y(), mHandleSize, mHandleSize);
-		nvgFillColor(ctx, NVGcolor{1,1,1,1});
-		nvgFill(ctx);
-	}
-}
-
 void SlideImage::dispose() {
-}
-
-
-bool SlideImage::mouseDragEvent(const Vector2i &p, const Vector2i &rel,
-                            int button, int /* modifiers */) {
-
-	Vector2i cp = p.cwiseMax(mCanvas->mCanvasPos).cwiseMin(mCanvas->mCanvasPos+mCanvas->mCanvasSize);
-	Vector2i delta = cp - mMouseDownPos;
-
-	//See if it's over the handle
-	if(mMouseDownHandle.x() < 3 && mMouseDownHandle.y()<3)
-	{
-		if(mMouseDownHandle.x() == 1 &&  mMouseDownHandle.y() == 1) //Center
-		{
-			mPos = delta + mMouseDownWidgetPos;
-		}
-
-		if( mMouseDownHandle.y() == 0){ //Top Row
-			mSize.y() = mMouseDownWidgetSize.y() - delta.y();
-			mPos.y() = std::fmin(mMouseDownWidgetPos.y() + delta.y(),
-					mMouseDownWidgetSize.y()+mMouseDownWidgetPos.y());
-		}
-
-		if( mMouseDownHandle.y() == 2){ //Bottom Row
-			mSize.y() = mMouseDownWidgetSize.y() + cp.y() - mMouseDownPos.y();
-			mPos.y() = std::fmin(mMouseDownWidgetPos.y() + mMouseDownWidgetSize.y() + delta.y(),
-					mMouseDownWidgetPos.y());
-		}
-
-		if(mMouseDownHandle.x() == 0){ //Left Column
-			mSize.x() = mMouseDownWidgetSize.x() - delta.x();
-			mPos.x() = std::fmin(mMouseDownWidgetPos.x() + delta.x(),
-					mMouseDownWidgetSize.x()+mMouseDownWidgetPos.x());
-			}
-
-		if( mMouseDownHandle.x() == 2){ //Right Column
-			mSize.x() = mMouseDownWidgetSize.x() + delta.x();
-			mPos.x() = std::fmin(mMouseDownWidgetPos.x() + mMouseDownWidgetSize.x() + delta.x(),
-					mMouseDownWidgetPos.x());
-		}
-
-		mSize = mSize.cwiseAbs();//TODO
-	}else{
-		//Not over a handle
-	}
-
-
-	//TODO: Generalize snapping to all handles. Something like: Pos Snap(Pos)
-	//X Position Snap
-	if( std::abs((mCanvas->mCanvasPos.x() + mCanvas->mCanvasSize.x()/2) - (mPos.x() + mSize.x()/2)) < 25
-			&& mMouseDownHandle.x() == 1 &&  mMouseDownHandle.y() == 1){
-		mPos.x() = mCanvas->mCanvasPos.x() + mCanvas->mCanvasSize.x()/2 - mSize.x()/2;
-		mIsXSnap = true;
-	}else
-	{
-		mIsXSnap = false;
-	}
-
-	//Y Position Snap
-	if( std::abs((mCanvas->mCanvasPos.y() + mCanvas->mCanvasSize.y()/2) - (mPos.y() + mSize.y()/2)) < 25
-			&& mMouseDownHandle.x() == 1 &&  mMouseDownHandle.y() == 1){
-		mPos.y() = mCanvas->mCanvasPos.y() + mCanvas->mCanvasSize.y()/2 - mSize.y()/2;
-		mIsYSnap = true;
-	}else{
-		mIsYSnap = false;
-	}
-
-	UpdateCanvasCoordinates();
-	mCanvas->ImageItemUpdate(this);
-
-    return true;
-}
-
-void SlideImage::UpdateCanvasCoordinates(){
-    mCanvasImagePos.x() = ((float) (mPos.x()+mSize.x()/2) - mCanvas->mCanvasPos.x()) / mCanvas->mCanvasSize.x();
-    mCanvasImagePos.y() = ((float) (mPos.y()+mSize.y()/2) - mCanvas->mCanvasPos.y()) / mCanvas->mCanvasSize.y();
-    mCanvasImageSize.x() = ((float)(mSize.x()-mHandleSize)) / mCanvas->mCanvasSize.x();
-    mCanvasImageSize.y() = ((float)(mSize.y()-mHandleSize)) / mCanvas->mCanvasSize.y();
-}
-
-bool SlideImage::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int button, int modifiers){
-	mLastMouse = p-mPos;
-	return Widget::mouseMotionEvent(p, rel, button, modifiers);
-}
-
-bool SlideImage::mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) {
-	if (down == false)
-	{
-		mIsYSnap = false;
-		mIsXSnap = false;
-	}
-
-    if (Widget::mouseButtonEvent(p, button, down, modifiers))
-        return true;
-
-    if( button == GLFW_MOUSE_BUTTON_1){
-    	mMouseDownPos = p;
-    	mMouseDownWidgetSize = mSize;
-    	mMouseDownWidgetPos = mPos;
-
-    	Vector2i PosOnWidget = p-mPos;
-
-    	int x[3] = {0,mMouseDownWidgetSize.x()/2-mHandleSize/2,mMouseDownWidgetSize.x()-mHandleSize};
-    	int y[3] = {0,mMouseDownWidgetSize.y()/2-mHandleSize/2,mMouseDownWidgetSize.y()-mHandleSize};
-
-    	//Default to middle handle so clicking not on
-    	//a handle drags the whole object
-    	mMouseDownHandle = {1,1};
-
-    	for(int xL = 0;xL<3;xL++){
-    		for(int yL = 0;yL<3;yL++){
-				//Yup, see if it's over the handle
-				if(PosOnWidget.x() < x[xL]+mHandleSize && PosOnWidget.x() > x[xL] &&
-						PosOnWidget.y() < y[yL]+mHandleSize && PosOnWidget.y() > y[yL])
-				{
-					mMouseDownHandle = {xL,yL};
-					xL = 3;
-					yL = 3;
-				}
-    		}
-    	}
-
-    	return true;
-    }
-
-    return false;
-}
-
-bool SlideImage::focusEvent(bool focused)
-{
-	UpdateCanvasCoordinates();
-	if(true)
-		mCanvas->ImageItemUpdate(this);
-	if(false)
-		mCanvas->ImageLostFocus(this);
-	return Widget::focusEvent(focused);
-}
-
-bool SlideImage::scrollEvent(const Vector2i &p, const Vector2f &rel) {
-    Widget::scrollEvent(p, rel);
-    return true;
-}
-
-void SlideImage::refreshRelativePlacement() {
-    /* Overridden in \ref Popup */
 }
 
 void SlideImage::save(Serializer &s) const {
@@ -383,9 +148,5 @@ bool SlideImage::load(Serializer &s) {
 
     return true;
 }
-
-
-
-
 
 NAMESPACE_END(nanogui)

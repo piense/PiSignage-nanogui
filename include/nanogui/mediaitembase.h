@@ -17,9 +17,15 @@
 #pragma once
 
 #include <nanogui/widget.h>
+#include <nanogui/slidecanvasbase.h>
 
 
 NAMESPACE_BEGIN(nanogui)
+
+//Responsible for media items on the canvas
+//and maybe media items not on the canvas - we'll see
+//Supports positioning, sizing, dragging, and resizing of the item
+//Also provides virtual hooks to populate the properties pane
 
 /**
  * \class SlideJpeg slidejpeg.h
@@ -29,11 +35,10 @@ NAMESPACE_BEGIN(nanogui)
 class NANOGUI_EXPORT MediaItemBase : public Widget {
 
 public:
-    virtual void MediaItemBase() = 0;
-    virtual void ~MediaItemBase() = 0;
+	MediaItemBase(Widget *parent);
 
     /// Return the panel used to house window buttons
-    Widget *buttonPanel();
+    //Widget *buttonPanel(); //idk if this is necessary
 
     /// Dispose the window
     void dispose();
@@ -56,10 +61,13 @@ public:
     virtual bool load(Serializer &s) override;
     virtual bool focusEvent(bool focused) override;
 
+	//Item's rectangle on the canvas
     Vector2f mCanvasSize; //0-1 tuple, 0,0 is top left
     Vector2f mCanvasPos; //0-1 tuple, 0,0 is top left
 
     //From Widget: Vector2i mPos, mSize; Relative to parent frame
+
+	SlideCanvasBase *mCanvas;
 
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
@@ -67,9 +75,6 @@ protected:
 
     void drawHandles(NVGcontext *ctx);
     void drawSnaps(NVGcontext *ctx);
-
-    //Screen ratio width/height of the target screen resolution
-    float windowRatio;
 
     bool mDrag;
 
