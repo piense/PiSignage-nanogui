@@ -57,6 +57,9 @@ public:
     //virtual void ImageItemUpdate(SlideImage *image) override;
     //virtual void ImageLostFocus(SlideImage *image) override;
 
+	//TODO: Move this somewhere not public
+	Window *propertiesPanel;
+
     SlideImage *selectedImage(){return mSelectedImage;}
 protected:
     /// Internal helper function to maintain nested window position values; overridden in \ref Popup
@@ -66,7 +69,6 @@ protected:
     float windowRatio;
 
     SlideImage *mSelectedImage;
-
 
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

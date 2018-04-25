@@ -17,6 +17,8 @@
 #include <nanogui/layout.h>
 #include <nanogui/serializer/core.h>
 #include <nanogui/slidecanvas.h>
+#include <nanogui/label.h>
+#include <nanogui/textbox.h>
 #include <math.h>
 
 // Includes for the GLTexture class.
@@ -30,18 +32,47 @@ SlideImage::SlideImage(Widget *parent, const std::string& fileName)
     : MediaItemBase(parent),
 		mImageMode(1), //Image mode to scaling
 		mImageHandle(0), //unloaded state
-		mFileLoadError(false){
+		mFileLoadError(false)
+	{
+
+	mImagePosLabel = new Label(NULL, "Position:", "sans-bold");
+	mImagePosLabel->incRef();
+	mImagePosition = new TextBox(NULL);
+	mImagePosition->setEditable(true);
+	mImagePosition->setFixedSize(Vector2i(130, 20));
+	mImagePosition->setValue("800, 400");
+	mImagePosition->setUnits("Px");
+	mImagePosition->setDefaultValue("1080");
+	mImagePosition->setFontSize(16);
+	mImagePosition->setFormat("^[0-9]{1,4}\\s*[,]\\s*[0-9]{1,4}$");
+	mImagePosition->incRef();
+
+	mImageSizeLabel = new Label(NULL, "Size:", "sans-bold");
+	mImageSizeLabel->incRef();
+	mImageSize = new TextBox(NULL);
+	mImageSize->setEditable(true);
+	mImageSize->setFixedSize(Vector2i(130, 20));
+	mImageSize->setValue("800 x 400");
+	mImageSize->setUnits("Px");
+	mImageSize->setDefaultValue("1080");
+	mImageSize->setFontSize(16);
+	mImageSize->setFormat("^[0-9]{1,4}\\s*[,]\\s*[0-9]{1,4}$");
+	mImageSize->incRef();
+
 	mFileName = fileName;
 }
 
 SlideImage::~SlideImage()
 {
+	mImagePosLabel->decRef();
+	mImageSizeLabel->decRef();
+	mImagePosition->decRef();
+	mImageSize->decRef();
     //delete texture;
 }
 
 
 void SlideImage::draw(NVGcontext *ctx) {
-
     nvgSave(ctx);
     
 	//Draw the image
@@ -112,8 +143,6 @@ void SlideImage::drawImage(NVGcontext *ctx){
 			break;
 	}
 
-
-
 	NVGpaint imgPaint = nvgImagePattern(ctx,
 			mPos.x()+(mSize.x()/2)-outputWidth/2,
 			mPos.y()+(mSize.y()/2)-outputHeight/2,
@@ -130,8 +159,31 @@ void SlideImage::drawImage(NVGcontext *ctx){
 	else
 		nvgRect(ctx, mPos.x()+mHandleSize/2,mPos.y()+mHandleSize/2,mSize.x()-mHandleSize,mSize.y()-mHandleSize);
 
+	//TODO Not the best place for this but it'll work
+	char tempString[200];
+
+	sprintf(&tempString[0],"%d, %d",
+	(uint32_t)(mCanvasSize.x()*1920),
+	(uint32_t)(mCanvasSize.y()*1080));
+	mImageSize->setValue(std::string(&tempString[0]));
+
+	sprintf(&tempString[0],"%d x %d",
+	(uint32_t)(mCanvasPos.x()*1920),
+	(uint32_t)(mCanvasPos.y()*1080));
+	mImagePosition->setValue(std::string(&tempString[0]));
+
 	nvgFillPaint(ctx, imgPaint);
 	nvgFill(ctx);
+}
+
+Widget *SlideImage::initPropertiesPanel(Window *parent)
+{
+	parent->addChild(mImagePosLabel);
+	parent->addChild(mImagePosition);
+	parent->addChild(mImageSizeLabel);
+	parent->addChild(mImageSize);
+
+	return NULL;
 }
 
 void SlideImage::dispose() {

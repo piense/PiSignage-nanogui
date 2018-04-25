@@ -47,9 +47,8 @@ Vector2i MediaItemBase::preferredSize(NVGcontext *ctx) const {
 }
 
 void MediaItemBase::performLayout(NVGcontext *ctx) {
-	//TODO: Compensate for edges
-	mSize.x() = mCanvas->mCanvasSize.x() * mCanvasSize.x();
-	mSize.y() = mCanvas->mCanvasSize.y() * mCanvasSize.y();
+	mSize.x() = mCanvas->mCanvasSize.x() * mCanvasSize.x() + mHandleSize;
+	mSize.y() = mCanvas->mCanvasSize.y() * mCanvasSize.y() + mHandleSize;
 
 	mPos.x() = mCanvas->mCanvasSize.x() * mCanvasPos.x() + mCanvas->mCanvasPos.x() - mSize.x() / 2.0;
 	mPos.y() = mCanvas->mCanvasSize.y() * mCanvasPos.y() + mCanvas->mCanvasPos.y() - mSize.y() / 2.0;

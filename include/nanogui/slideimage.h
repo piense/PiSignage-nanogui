@@ -15,6 +15,8 @@
 #include <nanogui/widget.h>
 #include <nanogui/slidecanvasbase.h>
 #include <nanogui/mediaitembase.h>
+#include <nanogui/vscrollpanel.h>
+#include <nanogui/textbox.h>
 
 // Includes for the GLTexture class.
 #include <cstdint>
@@ -43,6 +45,8 @@ public:
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
 
+	virtual Widget *initPropertiesPanel(Window *parent) override;
+
     //TODO: Enum
     int mImageMode; //0=Crop, 1=Scale, 2=Stretch
 
@@ -50,6 +54,13 @@ protected:
     void drawImage(NVGcontext *ctx);
 
     int mImageHandle;
+
+	//Properties widgets
+	//TODO: Move size & position to base class
+	Label *mImagePosLabel;
+	Label *mImageSizeLabel;
+	TextBox *mImagePosition;
+	TextBox *mImageSize;
 
     //Screen ratio width/height of the target screen resolution
     float windowRatio;

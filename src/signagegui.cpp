@@ -116,6 +116,9 @@ public:
 			return true;
 		});
 
+		Window *propertiesWindow = new Window(this, "Properties");
+		propertiesWindow->setPosition(Vector2i(15, 275));
+		propertiesWindow->setLayout(new GroupLayout());
 
         auto imageWindowLayout = new AdvancedGridLayout({0},{30,15,0},10);
         imageWindowLayout->setColStretch(0,1);
@@ -126,6 +129,7 @@ public:
         imageWindow->setSize(Vector2i(900,700));
         imageWindow->setLayout(imageWindowLayout);
         mSlideCanvas = new SlideCanvas(imageWindow);
+		mSlideCanvas->propertiesPanel = propertiesWindow;
         imageWindowLayout->setAnchor(mSlideCanvas, AdvancedGridLayout::Anchor(0,2));
 
         Widget *tools = new Widget(imageWindow);
@@ -149,9 +153,7 @@ public:
         b = new Button(tools,"Add Text");
         b->setCallback([&] {cout<<"Add Text\n";});
 
-        window = new Window(this, "Properties");
-        window->setPosition(Vector2i(15, 275));
-        window->setLayout(new GroupLayout());
+
 
 
         //This will probably get moved into the specific MediaItem classes somehow

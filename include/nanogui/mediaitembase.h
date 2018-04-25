@@ -19,7 +19,6 @@
 #include <nanogui/widget.h>
 #include <nanogui/slidecanvasbase.h>
 
-
 NAMESPACE_BEGIN(nanogui)
 
 //Responsible for media items on the canvas
@@ -60,6 +59,9 @@ public:
     virtual void save(Serializer &s) const override;
     virtual bool load(Serializer &s) override;
     virtual bool focusEvent(bool focused) override;
+
+	//The properties panel controls for the media item
+	virtual Widget *initPropertiesPanel(Window *parent) = 0;
 
 	//Item's rectangle on the canvas
     Vector2f mCanvasSize; //0-1 tuple, 0,0 is top left

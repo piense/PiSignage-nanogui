@@ -14,7 +14,9 @@
 #include <nanogui/opengl.h>
 #include <nanogui/screen.h>
 #include <nanogui/layout.h>
+#include <nanogui/window.h>
 #include <nanogui/serializer/core.h>
+#include <nanogui/mediaitembase.h>
 
 NAMESPACE_BEGIN(nanogui)
 
@@ -119,8 +121,24 @@ bool SlideCanvas::mouseMotionEvent(const Vector2i &p, const Vector2i &rel, int b
 }
 
 bool SlideCanvas::mouseButtonEvent(const Vector2i &p, int button, bool down, int modifiers) {
-    if (Widget::mouseButtonEvent(p, button, down, modifiers))
-        return true;
+	if (Widget::mouseButtonEvent(p, button, down, modifiers))
+	{
+		for (auto it = mChildren.rbegin(); it != mChildren.rend(); ++it) {
+			Widget *child = *it;
+			if (child->focused())
+			{
+				while (propertiesPanel->childCount() > 0)
+					propertiesPanel->removeChild(0);
+
+				//TODO: Find a better way than this cast
+				((MediaItemBase *)child)->initPropertiesPanel(propertiesPanel);
+
+				//TODO: Figure out how to just do layout on one widget
+				screen()->performLayout();
+			}
+		}
+		return true;
+	}
 
     return false;
 }
